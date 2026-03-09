@@ -60,6 +60,9 @@ from infinigen_examples.util.generate_indoors_util import (
 from . import (
     generate_nature,  # noqa: F401 # needed for nature gin configs to be loaded
 )
+from .configs_indoor.floor_plans import (
+    single_room,  # noqa: F401 # needed so gin registers single-room floor plan configurables
+)
 
 logger = logging.getLogger(__name__)
 
