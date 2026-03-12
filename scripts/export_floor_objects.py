@@ -69,6 +69,7 @@ def main():
     with args.solve_state.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
+    # find objects with the "Semantics(room)" tag, which are attached to the room itself, rather than other furniture.
     objs = data["objs"]
     rooms = {
         name: obj
