@@ -22,11 +22,12 @@ def relation_is_floor_on_room(relation, rooms):
     parent_tags = rel.get("parent_tags", [])
     parent_tags = parent_tags if isinstance(parent_tags, list) else [parent_tags]
 
+    # if a object is support and visible, but not a wall or ceiling, it's likely on the floor.
     return (
         has_tag(parent_tags, "Subpart(support)")
         and has_tag(parent_tags, "Subpart(visible)")
-        and not has_tag_fragment(parent_tags, "Subpart(wall)")
-        and not has_tag_fragment(parent_tags, "Subpart(ceiling)")
+        and not has_tag(parent_tags, "Subpart(wall)")
+        and not has_tag(parent_tags, "Subpart(ceiling)")
     )
 
 
@@ -80,6 +81,7 @@ def main():
     floor_objects = []
     for name, obj in objs.items():
         tags = obj.get("tags", [])
+        # if it is a part of room or a cutter, it can't be a floor object
         if has_tag(tags, "Semantics(room)") or has_tag(tags, "Semantics(cutter)"):
             continue
 
@@ -88,6 +90,7 @@ def main():
         if not floor_relations:
             continue
 
+        # should only have one floor relation, but if there are multiple, just take the first one.
         room_name = floor_relations[0]["target_name"]
         floor_objects.append(
             {

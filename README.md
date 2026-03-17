@@ -157,6 +157,7 @@ Conference on Computer Vision and Pattern Recognition (CVPR) 2023
 - [Installation Guide](docs/Installation.md)
 - ["Hello World": Generate your first Infinigen-Nature scene](docs/HelloWorld.md)
 - ["Hello Room": Generate your first Infinigen-Indoors scene](docs/HelloRoom.md)
+- [One-run pipeline for single-room indoors](docs/OneRunPipeline.md)
 - [Configuring Infinigen](docs/ConfiguringInfinigen.md)
 - [Configuring Cameras](docs/ConfiguringCameras.md)
 - [Downloading pre-generated data](docs/PreGeneratedData.md)

@@ -7,7 +7,6 @@ import argparse
 import logging
 import math
 import shutil
-import subprocess
 import warnings
 from collections import defaultdict
 from pathlib import Path
@@ -34,6 +33,12 @@ BAKE_TYPES = {
 }  # 'EMIT':'Emission Color' #  "GLOSSY": 'Specular IOR Level', 'TRANSMISSION':'Transmission Weight' don't export
 SPECIAL_BAKE = {"METAL": "Metallic", "TRANSMISSION": "Transmission Weight"}
 ALL_BAKE = BAKE_TYPES | SPECIAL_BAKE
+
+
+def sanitize_fs_name(name: str) -> str:
+    for bad in '<>:"/\\|?*':
+        name = name.replace(bad, "_")
+    return name.replace(" ", "_").replace(".", "_")
 
 
 def apply_all_modifiers(obj):
@@ -160,42 +165,37 @@ def split_glass_mats():
 
 def clean_names(obj=None):
     if obj is not None:
-        obj.name = (obj.name).replace(" ", "_")
-        obj.name = (obj.name).replace(".", "_")
+        obj.name = sanitize_fs_name(obj.name)
 
         if obj.type == "MESH":
             for uv_map in obj.data.uv_layers:
-                uv_map.name = uv_map.name.replace(".", "_")
+                uv_map.name = sanitize_fs_name(uv_map.name)
 
         for mat in bpy.data.materials:
             if mat is None:
                 continue
-            mat.name = (mat.name).replace(" ", "_")
-            mat.name = (mat.name).replace(".", "_")
+            mat.name = sanitize_fs_name(mat.name)
 
         for slot in obj.material_slots:
             mat = slot.material
             if mat is None:
                 continue
-            mat.name = (mat.name).replace(" ", "_")
-            mat.name = (mat.name).replace(".", "_")
+            mat.name = sanitize_fs_name(mat.name)
         return
 
     for obj in bpy.data.objects:
-        obj.name = (obj.name).replace(" ", "_")
-        obj.name = (obj.name).replace(".", "_")
+        obj.name = sanitize_fs_name(obj.name)
 
         if obj.type == "MESH":
             for uv_map in obj.data.uv_layers:
-                uv_map.name = uv_map.name.replace(
-                    ".", "_"
-                )  # if uv has '.' in name the node will export wrong in USD
+                uv_map.name = sanitize_fs_name(
+                    uv_map.name
+                )  # if UV has unsupported chars the exporter may write invalid paths
 
     for mat in bpy.data.materials:
         if mat is None:
             continue
-        mat.name = (mat.name).replace(" ", "_")
-        mat.name = (mat.name).replace(".", "_")
+        mat.name = sanitize_fs_name(mat.name)
 
 
 def remove_obj_parents(obj=None):
@@ -435,11 +435,11 @@ def process_glass_materials(obj, export_usd):
 def bake_pass(obj, dest: Path, img_size, bake_type, export_usd, export_name=None):
     if export_name is None:
         img = bpy.data.images.new(f"{obj.name}_{bake_type}", img_size, img_size)
-        clean_name = (obj.name).replace(" ", "_").replace(".", "_").replace("/", "_")
+        clean_name = sanitize_fs_name(obj.name)
         file_path = dest / f"{clean_name}_{bake_type}.png"
     else:
         img = bpy.data.images.new(f"{export_name}_{bake_type}", img_size, img_size)
-        file_path = dest / f"{export_name}_{bake_type}.png"
+        file_path = dest / f"{sanitize_fs_name(export_name)}_{bake_type}.png"
     dest = dest / "textures"
 
     bake_obj = False
@@ -1254,6 +1254,8 @@ def export_curr_scene(
 
 
 def main(args):
+    args.input_folder = args.input_folder.resolve()
+    args.output_folder = args.output_folder.resolve()
     args.output_folder.mkdir(exist_ok=True)
     logging.basicConfig(
         filename=args.output_folder / "export_logs.log",
@@ -1264,7 +1266,9 @@ def main(args):
     targets = sorted(list(args.input_folder.iterdir()))
     for blendfile in targets:
         if blendfile.stem == "solve_state":
-            shutil.copy(blendfile, args.output_folder / "solve_state.json")
+            dst = args.output_folder / "solve_state.json"
+            if blendfile.resolve() != dst.resolve():
+                shutil.copy(blendfile, dst)
 
         if not blendfile.suffix == ".blend":
             print(f"Skipping non-blend file {blendfile}")
@@ -1281,8 +1285,7 @@ def main(args):
             individual_export=args.individual,
             omniverse_export=args.omniverse,
         )
-        # wanted to use shutil here but kept making corrupted files
-        subprocess.call(["zip", "-r", str(folder.with_suffix(".zip")), str(folder)])
+        shutil.make_archive(str(folder), "zip", root_dir=folder.parent, base_dir=folder.name)
 
     bpy.ops.wm.quit_blender()
 
