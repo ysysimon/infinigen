@@ -3,6 +3,10 @@ import json
 from pathlib import Path
 
 
+def blender_name_to_usd_prim_name(name):
+    return name.replace("(", "_").replace(")", "_").replace(".", "_")
+
+
 def has_tag(tags, needle):
     return any(tag == needle for tag in tags)
 
@@ -96,6 +100,8 @@ def main():
             {
                 "name": name,
                 "blender_object": obj.get("obj"),
+                "usd_prim_name": blender_name_to_usd_prim_name(obj.get("obj", "")),
+                "usd_prim_path": f"/World/{blender_name_to_usd_prim_name(obj.get('obj', ''))}",
                 "room_name": room_name,
                 "room_type": room_type_from_tags(rooms[room_name].get("tags", [])),
                 "tags": sorted(tags),
